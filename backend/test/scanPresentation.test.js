@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import {
+  activeJobElapsedMs,
+  activeJobWorkflowDepth,
   cleanError,
   configuredPostScriptIds,
   errorIsFromPreviousRun,
@@ -12,6 +14,28 @@ import {
 } from '../src/lib/repo.js';
 import { serializeScan } from '../src/lib/serialize.js';
 import { SCAN_STATUSES } from '../src/lib/constants.js';
+
+test('active workers expose workflow depth only for workflow steps', () => {
+  assert.equal(activeJobWorkflowDepth({ kind: 'step' }, { depth: 2 }), 2);
+  assert.equal(activeJobWorkflowDepth({}, { depth: 0 }), 0);
+  assert.equal(activeJobWorkflowDepth({ kind: 'post_script' }, { depth: 3 }), null);
+  assert.equal(activeJobWorkflowDepth({ kind: 'step' }, null), null);
+});
+
+test('active worker duration begins at the harness phase instead of the earlier metadata claim', () => {
+  const now = Date.parse('2026-08-02T12:00:00.000Z');
+  const row = {
+    status: 'running',
+    phase: 'running_harness',
+    runStartedAt: new Date('2026-08-02T09:00:00.000Z'),
+    updatedAt: new Date('2026-08-02T11:04:00.000Z'),
+    runTimeMs: 0,
+  };
+
+  assert.equal(activeJobElapsedMs(row, row.phase, now), 56 * 60 * 1000);
+  assert.equal(activeJobElapsedMs({ ...row, phase: 'building_workspace' }, 'building_workspace', now), null);
+  assert.equal(activeJobElapsedMs({ ...row, runTimeMs: 1234 }, 'writing_db', now), 1234);
+});
 
 test('lineage summary includes unclaimed fan-out work in the denominator', () => {
   const scan = { configuration: {} };

@@ -452,11 +452,21 @@ export function cleanError(value) {
   return compactError(value);
 }
 
-function elapsedMsSince(value) {
-  if (!value) return null;
-  const then = new Date(value).getTime();
-  if (!Number.isFinite(then)) return null;
-  return Math.max(0, Date.now() - then);
+export function activeJobElapsedMs(row = {}, phase = effectivePhase(row), now = Date.now()) {
+  const recordedRunTime = Number(row.runTimeMs);
+  if (phase === 'writing_db' && Number.isFinite(recordedRunTime) && recordedRunTime >= 0) {
+    return recordedRunTime;
+  }
+  if (phase !== 'running_harness') return null;
+
+  // updatedAt is refreshed when the metadata enters running_harness. Using
+  // runStartedAt here would include workspace preparation and make the UI
+  // report a much longer duration than the active model process.
+  const harnessStartedAt = row.updatedAt || row.runStartedAt || row.insertedAt;
+  if (!harnessStartedAt) return null;
+  const startedAt = new Date(harnessStartedAt).getTime();
+  if (!Number.isFinite(startedAt)) return null;
+  return Math.max(0, now - startedAt);
 }
 
 export function errorIsFromPreviousRun(scan, error) {
@@ -484,8 +494,15 @@ function metadataTitle(row, stepsMap) {
   return `${step?.depth ?? '?'} · ${step?.name || `Step ${row.stepId.toString()}`}`;
 }
 
+export function activeJobWorkflowDepth(row = {}, step = null) {
+  if ((row.kind || 'step') !== 'step') return null;
+  const depth = Number(step?.depth);
+  return Number.isInteger(depth) && depth >= 0 ? depth : null;
+}
+
 function metadataJob(row, stepsMap) {
   const phase = effectivePhase(row);
+  const step = (row.kind || 'step') === 'step' ? stepsMap.get(row.stepId.toString()) : null;
   return {
     id: row.id.toString(),
     metadataId: row.id.toString(),
@@ -495,8 +512,9 @@ function metadataJob(row, stepsMap) {
     status: row.status,
     phase,
     phaseLabel: phaseLabel(phase),
+    depth: activeJobWorkflowDepth(row, step),
     startedAt: row.runStartedAt || row.insertedAt,
-    elapsedMs: elapsedMsSince(row.runStartedAt || row.insertedAt),
+    elapsedMs: activeJobElapsedMs(row, phase),
     runTimeMs: row.runTimeMs == null ? null : Number(row.runTimeMs),
     codexAccountEmail: row.codexAccountEmail || null,
     codexAccountId: row.codexAccountId || null,
@@ -656,7 +674,6 @@ async function statusSummariesByScan(scans, stepsMap, workflowsById) {
 
   for (const summary of summaries.values()) {
     summary.activeJobCount = summary.activeJobs.length;
-    summary.activeJobs = summary.activeJobs.slice(0, 5);
     summary.recentErrors = orderScanErrorsForDisplay(summary.recentErrors).slice(0, 5);
     summary.latestError = summary.recentErrors.find((error) => !error.previousRun) || null;
     summary.expectedStepLineages = summary.stepAttempts;

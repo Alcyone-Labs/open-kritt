@@ -1204,12 +1204,177 @@ function scanErrorTimestamp(error) {
   return null;
 }
 
+const EXTENDED_ACTIVE_JOB_MS = 45 * 60 * 1000;
+const ACTIVE_JOB_DEPTH_PALETTE_SIZE = 6;
+
+export function activeJobWorkflowDepth(job) {
+  if (job?.kind && job.kind !== 'step') return null;
+  if (job?.depth != null && job.depth !== '') {
+    const explicitDepth = Number(job.depth);
+    if (Number.isInteger(explicitDepth) && explicitDepth >= 0) return explicitDepth;
+  }
+  const titleMatch = `${job?.title || ''}`.match(/^\s*(\d+)\s*·/);
+  if (!titleMatch) return null;
+  const titleDepth = Number(titleMatch[1]);
+  return Number.isInteger(titleDepth) ? titleDepth : null;
+}
+
+function activeJobStage(job) {
+  const depth = activeJobWorkflowDepth(job);
+  if (depth != null) return { key: `depth-${depth}`, label: `D${depth}`, depth };
+  if (job?.kind && job.kind !== 'step') return { key: 'post', label: 'POST', depth: null };
+  return { key: 'work', label: 'WORK', depth: null };
+}
+
+function activeJobDepthStyle(stage) {
+  if (stage.depth == null) {
+    return { color: 'var(--text-2)', background: 'var(--surface)' };
+  }
+  const paletteIndex = stage.depth % ACTIVE_JOB_DEPTH_PALETTE_SIZE;
+  return {
+    color: `var(--depth-${paletteIndex})`,
+    background: `var(--depth-${paletteIndex}-bg)`,
+  };
+}
+
+export function activeJobDepthSummary(jobs = []) {
+  const counts = new Map();
+  for (const job of jobs) {
+    const stage = activeJobStage(job);
+    const current = counts.get(stage.key);
+    if (current) current.count += 1;
+    else counts.set(stage.key, { ...stage, count: 1 });
+  }
+  return [...counts.values()].sort((left, right) => {
+    if (left.depth != null && right.depth != null) return left.depth - right.depth;
+    if (left.depth != null) return -1;
+    if (right.depth != null) return 1;
+    return left.label.localeCompare(right.label);
+  });
+}
+
+export function formatActiveJobElapsed(value) {
+  const milliseconds = Number(value);
+  if (!Number.isFinite(milliseconds) || milliseconds < 0) return null;
+  const seconds = Math.floor(milliseconds / 1000);
+  if (seconds < 1) return '<1s';
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+}
+
+function ActiveJobCard({ job }) {
+  const elapsed = formatActiveJobElapsed(job.elapsedMs);
+  const extended = Number(job.elapsedMs) >= EXTENDED_ACTIVE_JOB_MS;
+  const stage = activeJobStage(job);
+  const depthStyle = activeJobDepthStyle(stage);
+
+  return (
+    <article
+      aria-label={`${stage.depth == null ? stage.label : `Workflow depth ${stage.depth}`} worker: ${job.title || job.source || 'Active worker'}`}
+      style={{
+        minWidth: 0,
+        border: `1px solid ${extended ? 'var(--pend)' : 'var(--border)'}`,
+        borderRadius: 9,
+        background: `linear-gradient(135deg, ${depthStyle.background} 0%, var(--surface-2) 48%)`,
+        padding: '10px 11px',
+      }}
+    >
+      <div
+        className="mono"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 10,
+          fontSize: 10.5,
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 7,
+            minWidth: 0,
+            color: 'var(--run)',
+          }}
+        >
+          <span
+            title={stage.depth == null ? stage.label : `Workflow depth ${stage.depth}`}
+            style={{
+              flex: '0 0 auto',
+              border: `1px solid color-mix(in srgb, ${depthStyle.color} 32%, var(--border))`,
+              borderRadius: 5,
+              background: depthStyle.background,
+              color: depthStyle.color,
+              fontSize: 9.5,
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              lineHeight: 1,
+              padding: '4px 5px 3px',
+            }}
+          >
+            {stage.label}
+          </span>
+          <span
+            aria-hidden="true"
+            style={{
+              width: 6,
+              height: 6,
+              flex: '0 0 auto',
+              borderRadius: '50%',
+              background: 'var(--run)',
+            }}
+          />
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {job.phaseLabel || 'Running'}
+          </span>
+        </span>
+        <span
+          title={
+            extended
+              ? 'Extended run. This is informational and does not mean the worker is stuck or failed.'
+              : 'Current active harness duration'
+          }
+          style={{ flex: '0 0 auto', color: extended ? 'var(--pend)' : 'var(--text-2)' }}
+        >
+          {extended ? 'extended · ' : ''}
+          {elapsed || 'starting'}
+        </span>
+      </div>
+
+      <div
+        title={job.title}
+        style={{
+          color: 'var(--text)',
+          fontSize: 12.5,
+          fontWeight: 600,
+          lineHeight: 1.35,
+          marginTop: 8,
+          overflowWrap: 'anywhere',
+          whiteSpace: 'normal',
+        }}
+      >
+        {job.title || job.source || 'Active worker'}
+      </div>
+    </article>
+  );
+}
+
 export function ScanStatusPanel({ scan }) {
   const summary = scan.statusSummary || {};
   const rateLimited = scan.status === 'rate_limited';
   const completedLineages = summary.completedStepLineages ?? summary.stepCompletedAttempts ?? 0;
   const expectedLineages = summary.expectedStepLineages ?? summary.stepAttempts ?? 0;
   const activeJobs = summary.activeJobs || [];
+  const activeDepths = activeJobDepthSummary(activeJobs);
+  const longestActiveJobMs = activeJobs.reduce((longest, job) => {
+    const elapsed = Number(job?.elapsedMs);
+    return Number.isFinite(elapsed) ? Math.max(longest, elapsed) : longest;
+  }, 0);
   const recentErrors = summary.recentErrors || [];
   const currentFailedAttempts = summary.currentFailedAttempts ?? summary.failedAttempts ?? 0;
   const [expandedErrorIds, setExpandedErrorIds] = useState(() => new Set());
@@ -1298,36 +1463,77 @@ export function ScanStatusPanel({ scan }) {
       </div>
 
       {activeJobs.length > 0 && (
-        <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {activeJobs.map((job) => (
-            <span
-              key={job.id}
-              className="mono"
-              style={{
-                display: 'inline-flex',
-                gap: 6,
-                alignItems: 'center',
-                maxWidth: '100%',
-                padding: '4px 8px',
-                borderRadius: 7,
-                background: 'var(--run-bg)',
-                color: 'var(--run)',
-                fontSize: 11.5,
-              }}
-            >
-              <span>{job.phaseLabel}</span>
-              <span
-                style={{
-                  color: 'var(--text-2)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {job.title}
-              </span>
+        <div style={{ marginTop: 16 }}>
+          <div
+            className="mono"
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 8,
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ color: 'var(--text-2)', fontSize: 11.5 }}>Active workers</span>
+            <span style={{ color: 'var(--text-3)', fontSize: 10.5 }}>
+              {activeJobs.length} active
+              {longestActiveJobMs > 0 ? ` · longest ${formatActiveJobElapsed(longestActiveJobMs)}` : ''}
             </span>
-          ))}
+          </div>
+          <div
+            aria-label="Active workers by workflow depth"
+            className="mono"
+            style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 9 }}
+          >
+            {activeDepths.map((stage) => {
+              const depthStyle = activeJobDepthStyle(stage);
+              const description =
+                stage.depth == null
+                  ? `${stage.label}: ${stage.count} active worker${stage.count === 1 ? '' : 's'}`
+                  : `Depth ${stage.depth}: ${stage.count} active worker${stage.count === 1 ? '' : 's'}`;
+              return (
+                <span
+                  key={stage.key}
+                  title={description}
+                  aria-label={description}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    border: `1px solid color-mix(in srgb, ${depthStyle.color} 30%, var(--border))`,
+                    borderRadius: 999,
+                    background: depthStyle.background,
+                    color: depthStyle.color,
+                    fontSize: 10,
+                    lineHeight: 1,
+                    padding: '5px 7px',
+                  }}
+                >
+                  <span
+                    aria-hidden="true"
+                    style={{ width: 6, height: 6, borderRadius: '50%', background: depthStyle.color }}
+                  />
+                  <strong style={{ fontWeight: 700 }}>{stage.label}</strong>
+                  <span>{stage.count}</span>
+                </span>
+              );
+            })}
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+              gap: 8,
+            }}
+          >
+            {activeJobs.map((job) => (
+              <ActiveJobCard key={job.id} job={job} />
+            ))}
+          </div>
+          <div className="mono" style={{ color: 'var(--text-3)', fontSize: 9.5, marginTop: 7 }}>
+            Live duration is informational. The engine reports failures separately below.
+          </div>
         </div>
       )}
 
