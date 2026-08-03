@@ -19,9 +19,10 @@ into de-duplicated, ranked findings with configurable validation and enrichment.
 [Documentation](https://docs.kritt.ai) ·
 [Getting started](https://docs.kritt.ai/getting-started/installation-and-setup) ·
 [Contributing](CONTRIBUTING.md) ·
-[Research paper](https://kritt.ai/open-kritt-launch) ·
-[Discord community](https://t.co/WzXMUKWxcR) ·
-[Twitter](https://x.com/Kritt_AI)
+[Research paper](https://kritt.ai/open-kritt-launch)
+
+<a href="https://t.co/WzXMUKWxcR"><img alt="Join the open·kritt Discord community" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&amp;logoColor=white" /></a>
+<a href="https://x.com/Kritt_AI"><img alt="Follow Kritt on X" src="https://img.shields.io/badge/X-000000?logo=x&amp;logoColor=white" /></a>
 
 </div>
 
