@@ -1206,6 +1206,16 @@ function scanErrorTimestamp(error) {
 
 const EXTENDED_ACTIVE_JOB_MS = 45 * 60 * 1000;
 const ACTIVE_JOB_DEPTH_PALETTE_SIZE = 6;
+const ACTIVE_JOB_HARNESS_LABELS = Object.freeze({
+  codex: 'Codex CLI',
+  'claude-code': 'Claude Code',
+  droid: 'Factory Droid',
+});
+
+function activeJobHarnessLabel(value) {
+  const harness = `${value || ''}`.trim();
+  return ACTIVE_JOB_HARNESS_LABELS[harness] || harness || 'Not reported';
+}
 
 export function activeJobWorkflowDepth(job) {
   if (job?.kind && job.kind !== 'step') return null;
@@ -1271,6 +1281,8 @@ function ActiveJobCard({ job }) {
   const extended = Number(job.elapsedMs) >= EXTENDED_ACTIVE_JOB_MS;
   const stage = activeJobStage(job);
   const depthStyle = activeJobDepthStyle(stage);
+  const model = `${job.model || ''}`.trim() || 'Not reported';
+  const harness = activeJobHarnessLabel(job.harness);
 
   return (
     <article
@@ -1359,6 +1371,81 @@ function ActiveJobCard({ job }) {
         }}
       >
         {job.title || job.source || 'Active worker'}
+      </div>
+
+      <div
+        className="mono"
+        aria-label={`Model: ${model}; Harness: ${harness}`}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) auto',
+          alignItems: 'end',
+          gap: 10,
+          borderTop: '1px solid var(--border)',
+          marginTop: 9,
+          paddingTop: 8,
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: 'var(--text-3)',
+              fontSize: 8.5,
+              letterSpacing: '0.08em',
+              lineHeight: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Model
+          </div>
+          <div
+            title={`Model: ${model}`}
+            style={{
+              color: 'var(--text)',
+              fontSize: 11.5,
+              fontWeight: 650,
+              lineHeight: 1.25,
+              marginTop: 5,
+              overflowWrap: 'anywhere',
+            }}
+          >
+            {model}
+          </div>
+        </div>
+        <div style={{ minWidth: 0, textAlign: 'right' }}>
+          <div
+            style={{
+              color: 'var(--text-3)',
+              fontSize: 8.5,
+              letterSpacing: '0.08em',
+              lineHeight: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Harness
+          </div>
+          <span
+            title={`Harness: ${harness}`}
+            style={{
+              display: 'inline-block',
+              maxWidth: 120,
+              border: '1px solid var(--border-2)',
+              borderRadius: 999,
+              background: 'var(--surface)',
+              color: 'var(--text-2)',
+              fontSize: 9.5,
+              lineHeight: 1,
+              marginTop: 4,
+              overflow: 'hidden',
+              padding: '4px 6px',
+              textOverflow: 'ellipsis',
+              verticalAlign: 'bottom',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {harness}
+          </span>
+        </div>
       </div>
     </article>
   );

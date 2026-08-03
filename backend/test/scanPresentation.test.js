@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   activeJobElapsedMs,
+  activeJobRuntimeSelection,
   activeJobWorkflowDepth,
   cleanError,
   configuredPostScriptIds,
@@ -35,6 +36,64 @@ test('active worker duration begins at the harness phase instead of the earlier 
   assert.equal(activeJobElapsedMs(row, row.phase, now), 56 * 60 * 1000);
   assert.equal(activeJobElapsedMs({ ...row, phase: 'building_workspace' }, 'building_workspace', now), null);
   assert.equal(activeJobElapsedMs({ ...row, runTimeMs: 1234 }, 'writing_db', now), 1234);
+});
+
+test('active worker runtime resolves persisted metadata, depth overrides, and scan fallbacks in order', () => {
+  const scan = {
+    model: 'scan-model',
+    modelProvider: 'codex',
+    harness: 'codex',
+    thinkingEffort: 'xhigh',
+    modelOverrides: {
+      2: {
+        model: 'depth-model',
+        model_provider: 'factory',
+        harness: 'droid',
+        thinking_effort: 'max',
+      },
+    },
+  };
+
+  assert.deepEqual(activeJobRuntimeSelection({ kind: 'step' }, { depth: 2 }, scan), {
+    model: 'depth-model',
+    modelProvider: 'factory',
+    harness: 'droid',
+    thinkingEffort: 'max',
+  });
+  assert.deepEqual(activeJobRuntimeSelection({ kind: 'step', model: 'persisted-model' }, { depth: 2 }, scan), {
+    model: 'persisted-model',
+    modelProvider: 'factory',
+    harness: 'droid',
+    thinkingEffort: 'max',
+  });
+});
+
+test('post-processing workers use their recorded runtime or configured fallback', () => {
+  const scan = {
+    model: 'scan-model',
+    modelProvider: 'codex',
+    harness: 'codex',
+    thinkingEffort: 'high',
+    configuration: {
+      post_processing_model: 'post-model',
+      post_processing_model_provider: 'factory',
+      post_processing_harness: 'droid',
+      post_processing_thinking_effort: 'xhigh',
+    },
+  };
+
+  assert.deepEqual(activeJobRuntimeSelection({ kind: 'post_script' }, null, scan), {
+    model: 'post-model',
+    modelProvider: 'factory',
+    harness: 'droid',
+    thinkingEffort: 'xhigh',
+  });
+  assert.deepEqual(activeJobRuntimeSelection({ kind: 'post_script', model: 'persisted-post-model' }, null, scan), {
+    model: 'persisted-post-model',
+    modelProvider: 'factory',
+    harness: 'droid',
+    thinkingEffort: 'xhigh',
+  });
 });
 
 test('lineage summary includes unclaimed fan-out work in the denominator', () => {

@@ -494,15 +494,59 @@ function metadataTitle(row, stepsMap) {
   return `${step?.depth ?? '?'} · ${step?.name || `Step ${row.stepId.toString()}`}`;
 }
 
+function runtimeValue(configuration, snakeKey, camelKey = snakeKey) {
+  if (!configuration || typeof configuration !== 'object' || Array.isArray(configuration)) return null;
+  return configuration[snakeKey] || configuration[camelKey] || null;
+}
+
+export function activeJobRuntimeSelection(row = {}, step = null, scan = {}) {
+  const kind = row.kind || 'step';
+  const overrides = scan.modelOverrides;
+  const override =
+    kind === 'step' && step && overrides && typeof overrides === 'object' && !Array.isArray(overrides)
+      ? overrides[String(step.depth)]
+      : null;
+  const postProcessingEffort =
+    runtimeValue(scan.configuration, 'post_processing_thinking_effort', 'postProcessingThinkingEffort') ||
+    scan.thinkingEffort;
+  const postProcessingModel =
+    runtimeValue(scan.configuration, 'post_processing_model', 'postProcessingModel') || scan.model;
+  const postProcessingModelProvider =
+    runtimeValue(scan.configuration, 'post_processing_model_provider', 'postProcessingModelProvider') ||
+    scan.modelProvider;
+  const postProcessingHarness =
+    runtimeValue(scan.configuration, 'post_processing_harness', 'postProcessingHarness') || scan.harness;
+
+  return {
+    model: row.model || runtimeValue(override, 'model') || (kind === 'step' ? scan.model : postProcessingModel) || null,
+    modelProvider:
+      row.modelProvider ||
+      runtimeValue(override, 'model_provider', 'modelProvider') ||
+      (kind === 'step' ? scan.modelProvider : postProcessingModelProvider) ||
+      null,
+    harness:
+      row.harness ||
+      runtimeValue(override, 'harness') ||
+      (kind === 'step' ? scan.harness : postProcessingHarness) ||
+      null,
+    thinkingEffort:
+      row.thinkingEffort ||
+      runtimeValue(override, 'thinking_effort', 'thinkingEffort') ||
+      (kind === 'step' ? scan.thinkingEffort : postProcessingEffort) ||
+      null,
+  };
+}
+
 export function activeJobWorkflowDepth(row = {}, step = null) {
   if ((row.kind || 'step') !== 'step') return null;
   const depth = Number(step?.depth);
   return Number.isInteger(depth) && depth >= 0 ? depth : null;
 }
 
-function metadataJob(row, stepsMap) {
+function metadataJob(row, stepsMap, scan) {
   const phase = effectivePhase(row);
   const step = (row.kind || 'step') === 'step' ? stepsMap.get(row.stepId.toString()) : null;
+  const runtime = activeJobRuntimeSelection(row, step, scan);
   return {
     id: row.id.toString(),
     metadataId: row.id.toString(),
@@ -518,12 +562,13 @@ function metadataJob(row, stepsMap) {
     runTimeMs: row.runTimeMs == null ? null : Number(row.runTimeMs),
     codexAccountEmail: row.codexAccountEmail || null,
     codexAccountId: row.codexAccountId || null,
+    ...runtime,
   };
 }
 
-function metadataError(row, stepsMap) {
+function metadataError(row, stepsMap, scan) {
   return {
-    ...metadataJob(row, stepsMap),
+    ...metadataJob(row, stepsMap, scan),
     message: cleanError(row.error),
     knownError: knownError(row.error),
     insertedAt: row.insertedAt,
@@ -603,6 +648,10 @@ async function statusSummariesByScan(scans, stepsMap, workflowsById) {
         runTimeMs: true,
         codexAccountId: true,
         codexAccountEmail: true,
+        model: true,
+        modelProvider: true,
+        harness: true,
+        thinkingEffort: true,
         insertedAt: true,
         updatedAt: true,
       },
@@ -624,6 +673,10 @@ async function statusSummariesByScan(scans, stepsMap, workflowsById) {
         runTimeMs: true,
         codexAccountId: true,
         codexAccountEmail: true,
+        model: true,
+        modelProvider: true,
+        harness: true,
+        thinkingEffort: true,
         insertedAt: true,
         updatedAt: true,
       },
@@ -652,7 +705,8 @@ async function statusSummariesByScan(scans, stepsMap, workflowsById) {
   for (const row of activeRows) {
     const summary = summaries.get(row.scanId.toString());
     if (!summary) continue;
-    summary.activeJobs.push(metadataJob(row, stepsMap));
+    const scan = scansById.get(row.scanId.toString());
+    summary.activeJobs.push(metadataJob(row, stepsMap, scan));
   }
 
   for (const scan of scans) {
@@ -664,9 +718,9 @@ async function statusSummariesByScan(scans, stepsMap, workflowsById) {
   for (const row of errorRows) {
     const summary = summaries.get(row.scanId.toString());
     if (isDerivativeScanStatusError(row.error)) continue;
-    const error = metadataError(row, stepsMap);
-    if (!summary || !error.message) continue;
     const scan = scansById.get(row.scanId.toString());
+    const error = metadataError(row, stepsMap, scan);
+    if (!summary || !error.message) continue;
     error.previousRun = errorIsFromPreviousRun(scan, error);
     if (!error.previousRun && row.status === 'failed') summary.currentFailedAttempts += 1;
     summary.recentErrors.push(error);

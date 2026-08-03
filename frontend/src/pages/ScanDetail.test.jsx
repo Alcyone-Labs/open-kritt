@@ -225,6 +225,10 @@ describe('active worker presentation', () => {
                 phaseLabel: 'Running harness',
                 title: '2 · Derive concrete exploit candidates',
                 elapsedMs: 56 * 60 * 1000,
+                model: 'gpt-5.6-luna',
+                modelProvider: 'codex',
+                harness: 'codex',
+                thinkingEffort: 'max',
               },
             ],
           },
@@ -239,6 +243,9 @@ describe('active worker presentation', () => {
     expect(html).toContain('longest 56m');
     expect(html).toContain('extended · 56m');
     expect(html).toContain('2 · Derive concrete exploit candidates');
+    expect(html).toContain('Model: gpt-5.6-luna; Harness: Codex CLI');
+    expect(html).toContain('gpt-5.6-luna');
+    expect(html).toContain('Codex CLI');
     expect(html).toContain('white-space:normal');
     expect(html).toContain('overflow-wrap:anywhere');
     expect(html).toContain('The engine reports failures separately below.');
