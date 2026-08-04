@@ -19,6 +19,7 @@ into de-duplicated, ranked findings with configurable validation and enrichment.
 [Documentation](https://docs.kritt.ai) ·
 [Getting started](https://docs.kritt.ai/getting-started/installation-and-setup) ·
 [Contributing](CONTRIBUTING.md) ·
+[Owners](OWNERSHIP.md) ·
 [Research paper](https://kritt.ai/open-kritt-launch)
 
 <a href="https://t.co/WzXMUKWxcR"><img alt="Join the open·kritt Discord community" src="https://img.shields.io/badge/Discord-5865F2?logo=discord&amp;logoColor=white" /></a>
@@ -103,6 +104,11 @@ Open [http://localhost:3001](http://localhost:3001) to view the site.
 - [Security and threat model](docs/threat-model.md)
 
 ## Community and contributing
+
+open·kritt is jointly owned and maintained by
+[Harel Rom (`@harel-coffee`)](https://github.com/harel-coffee) and
+[Gabriel Balko (`@GabiCtrlZ`)](https://github.com/GabiCtrlZ). See
+[project ownership and copyright](OWNERSHIP.md) for details.
 
 Questions and ideas belong in [GitHub Discussions](https://github.com/Kritt-ai/open-kritt/discussions).
 Use [GitHub Issues](https://github.com/Kritt-ai/open-kritt/issues) for bugs and feature

@@ -1,0 +1,11 @@
+# A login may be added only by a project owner after the required signed copyright
+# assignment (and any employer disclaimer) is stored privately. This file is an
+# operational merge gate, not proof of assignment. One exact GitHub login per line.
+
+# Project owners
+harel-coffee
+GabiCtrlZ
+
+# Automation accounts; these do not contribute independently authored project code.
+dependabot[bot]
+github-actions[bot]
