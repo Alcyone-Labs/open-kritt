@@ -2,11 +2,48 @@
 
 **Location:** `/Users/nemb/projects/pastel-org/open-kritt`  
 **Remotes:**
-- `origin` → `git@github.com:Alcyone-Labs/open-kritt.git` (Pastel private fork — push here)
-- `upstream` → `https://github.com/Kritt-ai/open-kritt.git` (read-only for us)
+- `origin` → `git@github.com:Alcyone-Labs/open-kritt.git` (Pastel private fork — **only push target**)
+- `upstream` → `https://github.com/Kritt-ai/open-kritt.git` (**fetch only** — push URL disabled)
 
 **Program:** BLG-601 / `punkdb/docs/security-audits/kritt-harness-adapters.md`  
 **Policy:** No OpenAI/Anthropic for Punk security scans. Harnesses: CyberStrike → Hermes → OpenCode → Pi.
+
+---
+
+## Git workflow (so pull/push stay healthy)
+
+`main` **tracks `origin/main`**, never `upstream/main`.
+
+```bash
+cd ~/projects/pastel-org/open-kritt
+
+# Daily Pastel work
+git pull                  # = pull from origin
+git push                  # = push to origin (Alcyone-Labs)
+
+# Sync Kritt upstream (read-only) onto our fork
+git fetch upstream
+git rebase upstream/main  # or: git merge upstream/main
+git push --force-with-lease origin main   # only after a rebase rewrote history
+
+# Never
+git push upstream …       # blocked (push URL = DISABLE_DO_NOT_PUSH)
+```
+
+If `git status` shows `main...upstream/main [ahead N, behind M]`, tracking is wrong:
+
+```bash
+git branch -u origin/main
+git status -sb            # should show main...origin/main
+```
+
+Re-disable upstream push if someone re-enabled it:
+
+```bash
+git remote set-url --push upstream DISABLE_DO_NOT_PUSH
+```
+
+**Last healthy sync:** 2026-08-04 — rebased 3 Pastel commits onto upstream (+35), force-with-lease to `origin`.
 
 ---
 
