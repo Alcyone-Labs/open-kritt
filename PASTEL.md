@@ -1,50 +1,92 @@
 # Pastel private open-kritt fork — bootstrap
 
-**Location:** `pastel-org/open-kritt`  
+**Location:** `/Users/nemb/projects/pastel-org/open-kritt`  
 **Remotes:**
-- `origin` → `git@github.com:Alcyone-Labs/open-kritt.git` (Pastel private fork)
-- `upstream` → `https://github.com/Kritt-ai/open-kritt.git`
+- `origin` → `git@github.com:Alcyone-Labs/open-kritt.git` (Pastel private fork — push here)
+- `upstream` → `https://github.com/Kritt-ai/open-kritt.git` (read-only for us)
 
 **Program:** BLG-601 / `punkdb/docs/security-audits/kritt-harness-adapters.md`  
-**Policy:** No OpenAI/Anthropic providers for Punk security scans. Multi-harness: CyberStrike → Hermes → OpenCode → Pi.
+**Policy:** No OpenAI/Anthropic for Punk security scans. Harnesses: CyberStrike → Hermes → OpenCode → Pi.
 
-## Status
+---
 
-- [x] Shallow clone of upstream
-- [x] `origin` = Alcyone-Labs private fork; `upstream` = Kritt-ai
-- [x] `PastelCliHarness` registered (`cyberstrike`, `hermes`, `opencode`, `pi`)
-- [x] Backend constants + generation allow `ollama` provider pairing
-- [ ] `./kritt setup` Ollama credentials path (engine provider_credentials)
-- [ ] Docker Compose bind 127.0.0.1 only + egress allowlist
-- [ ] Job images ship / mount CyberStrike + Hermes binaries
-- [ ] First local-path scan of `punkdb/packages/cojson`
+## Operational default: Track A (what works today)
 
-## Safety (from upstream threat model)
+**Do not wait on kritt-managed Ollama credentials.** Deep waves run on the host via the Punk runner; CLIs use their own auth.
 
-1. Run stack on dedicated Docker host / Colima VM — engine is privileged (Docker socket).
-2. Bind UI/API to `127.0.0.1` only; put auth in front before any LAN exposure.
-3. Job containers are root + outbound net by default — add egress allowlist at host firewall when possible.
-4. Prefer **local path** scans of punkdb (no `GITHUB_TOKEN` for private monorepo).
-5. Treat findings as sensitive until triaged into BLG `#security`.
-6. Do **not** `git push upstream`. Push Pastel changes only to `origin` after Nick review.
+| Piece | Where |
+|-------|--------|
+| Runner | `punkdb/scripts/security-harness-run.mjs` → `pnpm security:harness` |
+| Gate | `punkdb` → `pnpm security:gate` |
+| CyberStrike Ollama | `cyberstrike auth` → `~/.local/share/cyberstrike/auth.json` |
+| Hermes Ollama | Hermes profile / `hermes model` (ollama-cloud) |
+| Findings | `punkdb/docs/security-audits/findings/` |
 
-## Commands
+### Run a wave
+
+```bash
+cd ~/projects/pastel-org/punkdb
+
+# Deterministic floor
+pnpm security:gate
+
+# Dry-run (prints command only)
+pnpm security:harness -- --dry-run --harness cyberstrike \
+  --workdir packages/cojson \
+  --prompt-file docs/security-audits/prompts/l1-crypto-boundary.md
+
+# Live CyberStrike L1 (writes under findings/ when the agent complies)
+pnpm security:harness -- --harness cyberstrike \
+  --workdir . \
+  --model ollama-cloud/deepseek-v4-flash:0731 \
+  --prompt-file docs/security-audits/prompts/2026-08-04-cyberstrike-l1-wave.md \
+  --out /tmp/cs-wave.json
+
+# Hermes confirm / Punk-aware follow-up
+pnpm security:harness -- --harness hermes \
+  --prompt-file docs/security-audits/prompts/2026-08-04-hermes-l1-wave.md \
+  --model deepseek-v4-flash:0731 \
+  --provider ollama-cloud \
+  --out /tmp/hermes-wave.json
+```
+
+Note: `pnpm security:harness -- <args>` — the bare `--` is stripped by the runner.
+
+### Credentials checklist (Track A)
+
+```bash
+cyberstrike auth list    # need Ollama Cloud
+which cyberstrike hermes
+hermes status            # provider/model as configured
+```
+
+No `open-kritt/.env` Ollama key required for Track A.
+
+---
+
+## Track B (deferred) — full kritt stack
+
+Scaffold only until we need workflows/de-dup UI:
+
+- [x] Clone + `origin` fork remote
+- [x] `PastelCliHarness` + `ollama` provider **name** in constants
+- [ ] First-class Ollama secret in `provider_credentials.py` / Accounts (not needed for Track A)
+- [ ] Compose hardened + runner images with CLIs
+- [ ] First multi-depth ranked scan via kritt UI
+
+Push Pastel commits to the fork when ready:
 
 ```bash
 cd ~/projects/pastel-org/open-kritt
-git remote -v
-# origin    git@github.com:Alcyone-Labs/open-kritt.git
-# upstream  https://github.com/Kritt-ai/open-kritt.git
-
-# Engine unit smoke for Pastel harnesses
-cd engine && python -m pytest tests/test_pastel_harnesses.py -q
-
-# Until full compose is ready, use Track A runner:
-cd ~/projects/pastel-org/punkdb
-pnpm security:harness -- --harness cyberstrike --prompt-file docs/security-audits/prompts/l1-crypto-boundary.md
-pnpm security:harness -- --harness hermes --prompt-file docs/security-audits/prompts/2026-08-04-hermes-l1-wave.md
+git push -u origin main    # never push upstream
 ```
 
-## License note
+## Safety
 
-open-kritt is AGPL-3.0. Self-hosting for internal Pastel use is fine; public SaaS of a modified fork has AGPL obligations. Nick owns licensing decisions.
+1. Local targets only unless Nick authorizes otherwise.  
+2. Hunters never fix/push. Findings → quarantine → BLG `#security`.  
+3. Do not push to `upstream`.
+
+## License
+
+AGPL-3.0 — Nick owns commercial/SaaS decisions.
