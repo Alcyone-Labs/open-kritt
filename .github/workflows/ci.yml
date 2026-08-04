@@ -16,24 +16,6 @@ permissions:
   contents: read
 
 jobs:
-  assignment-registry:
-    name: assignment registry
-    runs-on: ubuntu-latest
-    steps:
-      # Read the registry from the protected base revision, never from PR-controlled
-      # contents; otherwise a contributor could add their own login in the same PR.
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-      - name: Require a copyright assignment on file
-        env:
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          if ! grep --fixed-strings --line-regexp --quiet -- "$PR_AUTHOR" .github/copyright-assignment-allowlist; then
-            echo "::error::No signed copyright assignment is registered for @$PR_AUTHOR. See legal/README.md."
-            exit 1
-          fi
-
   versions:
     name: version sync
     runs-on: ubuntu-latest

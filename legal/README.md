@@ -3,9 +3,8 @@
 The official open·kritt project accepts copyrightable contributions only after their
 copyright has been assigned to the project owners, Harel Rom and Gabriel Balko.
 
-Repository text, a pull-request checkbox, a DCO sign-off, or inclusion in the assignment
-registry is not itself a copyright transfer. The signed agreement is the controlling
-record.
+Repository text, a pull-request checkbox, or a DCO sign-off is not itself a copyright
+transfer. The signed agreement is the controlling record.
 
 ## Before merging a contribution
 
@@ -16,19 +15,15 @@ record.
 3. Both project owners countersign the agreement and store the executed copy privately.
    Do not commit signatures, addresses, or other personal information to this public
    repository.
-4. An owner adds the contributor's exact GitHub login to
-   [`.github/copyright-assignment-allowlist`](../.github/copyright-assignment-allowlist)
-   in a separate pull request.
-5. The contributor's pull request may be merged only after the assignment-registry CI
-   check passes and an owner confirms that every author and co-author is covered.
+4. Before merging, an owner confirms that the executed agreement covers every author
+   and co-author and that any required entity disclaimer is also on file.
 
 Send completed agreements and questions to `info@kritt.ai`.
 
 ## Important limits
 
-- The automated check validates only the pull-request author's GitHub login. Owners must
-  manually check co-authors, commits copied from elsewhere, employer claims, and
-  third-party material.
+- Owners must manually check co-authors, commits copied from elsewhere, employer claims,
+  and third-party material.
 - Dependency metadata and automated dependency-update pull requests do not assign
   ownership of third-party dependencies. Those dependencies remain under their own
   licenses and ownership.

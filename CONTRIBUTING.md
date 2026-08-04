@@ -99,7 +99,7 @@ Follow the [contribution ownership process](legal/README.md) and complete the
 [Contributor Copyright Assignment Agreement](legal/CONTRIBUTOR_COPYRIGHT_ASSIGNMENT.md).
 If an employer or other entity could own the work, its signed
 [Employer Disclaimer](legal/EMPLOYER_DISCLAIMER.md) is also required. Executed documents
-are stored privately; the public registry contains GitHub logins only.
+are stored privately and verified by a project owner before merge.
 
 ## Open a pull request
 

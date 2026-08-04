@@ -53,7 +53,7 @@ protection — a one-time repo setting:
 **Settings → Branches → Add branch ruleset (or protection rule) for `main`:**
 - ✅ Require a pull request before merging
 - ✅ Require status checks to pass before merging → select the CI jobs
-  (`assignment registry`, `frontend`, `backend`, `engine`, `database`, `version sync`)
+  (`frontend`, `backend`, `engine`, `database`, `version sync`)
 - ✅ (recommended) Require branches to be up to date before merging
 - ✅ (recommended) Block force pushes
 
