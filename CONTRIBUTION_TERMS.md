@@ -13,10 +13,12 @@ project.
 ## Agreement by submission
 
 By intentionally submitting a Contribution, you affirm that you have read and agree to
-these terms. You intend your authenticated GitHub submission and the GitHub identity
-associated with it to constitute your electronic signature to this agreement. The
-assignment below takes effect when you submit the Contribution; rejection, closure, or
-later withdrawal of the submission does not revoke it.
+these terms. The ordinary act of making an authenticated GitHub submission, together
+with the GitHub identity associated with it, constitutes your electronic assent and
+signature to this agreement. No separate signature, contributor agreement, form,
+checkbox, registry, or other action is required. The assignment below takes effect when
+you submit the Contribution; rejection, closure, or later withdrawal of the submission
+does not revoke it.
 
 ## Assignment of rights
 

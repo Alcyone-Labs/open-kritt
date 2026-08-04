@@ -25,9 +25,9 @@ git clone https://github.com/<you>/open-kritt && cd open-kritt
 ./kritt setup
 ./kritt start
 
-# 3. Make changes on a branch, commit with sign-off + Conventional Commits
+# 3. Make changes on a branch and use Conventional Commits
 git checkout -b feat/my-change
-git commit -s -m "feat(frontend): add X"
+git commit -m "feat(frontend): add X"
 
 # 4. Push and open a PR against main. CI must pass before it can merge.
 
@@ -72,12 +72,10 @@ docker compose up --build
 
 ## Commit your change
 
-Every commit must use [Conventional Commits](https://www.conventionalcommits.org/) and
-include a [Developer Certificate of Origin](https://developercertificate.org/)
-sign-off:
+Every commit must use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```bash
-git commit -s -m "fix(frontend): describe the change"
+git commit -m "fix(frontend): describe the change"
 ```
 
 Common types are `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, and `ci`. A scope
@@ -91,8 +89,9 @@ transferable rights in the contribution jointly to
 [Harel Rom and Gabriel Balko](OWNERSHIP.md). Do not submit work that an employer, client,
 university, or another party owns or restricts.
 
-The DCO sign-off separately certifies provenance and your right to submit the
-contribution. Both the DCO and the Contribution Terms apply.
+No separate signature, contributor agreement, form, checkbox, registry, or special
+commit syntax is required. The ordinary act of submitting the contribution is the only
+assent step.
 
 ## Open a pull request
 

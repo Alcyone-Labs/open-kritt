@@ -15,9 +15,9 @@ assigned, copyright in open·kritt is held jointly by Harel Rom and Gabriel Balk
 
 By intentionally submitting a contribution, a contributor agrees to the
 [Contribution Terms](CONTRIBUTION_TERMS.md), including immediate assignment of
-transferable rights in the contribution jointly to Harel Rom and Gabriel Balko. A
-Developer Certificate of Origin sign-off separately confirms provenance and permission
-to contribute. See [CONTRIBUTING.md](CONTRIBUTING.md).
+transferable rights in the contribution jointly to Harel Rom and Gabriel Balko. No
+separate signature, form, or other contributor action is required. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 Submitting a contribution does not confer any ownership interest in open·kritt. After
 an effective assignment, the contributor retains no transferable economic copyright
