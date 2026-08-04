@@ -71,10 +71,10 @@ export const SCAN_STATUSES = [
 export const THINKING_EFFORTS = ['default', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
 export const DEFAULT_THINKING_EFFORT = 'medium';
 
-export const MODEL_PROVIDERS = ['codex', 'claude', 'openrouter'];
-export const DEFAULT_MODEL_PROVIDER = 'openrouter';
+export const MODEL_PROVIDERS = ['codex', 'claude', 'openrouter', 'ollama'];
+export const DEFAULT_MODEL_PROVIDER = 'ollama';
 
-export const HARNESSES = ['codex', 'claude-code', 'cursor'];
+export const HARNESSES = ['codex', 'claude-code', 'cursor', 'cyberstrike', 'hermes', 'opencode', 'pi'];
 export const HARNESS_ALIASES = {
   'codex-cli': 'codex',
   'cursor-agent': 'cursor',
@@ -84,10 +84,16 @@ export const MODEL_PROVIDER_HARNESSES = {
   codex: ['codex'],
   claude: ['claude-code'],
   openrouter: ['codex', 'claude-code'],
+  // Pastel security profile: multi-harness without OpenAI/Anthropic defaults
+  ollama: ['cyberstrike', 'hermes', 'opencode', 'pi'],
 };
 export const HARNESS_THINKING_EFFORTS = {
   codex: ['default', 'low', 'medium', 'high', 'xhigh', 'max', 'ultra'],
   'claude-code': ['default', 'low', 'medium', 'high', 'xhigh', 'max'],
+  cyberstrike: ['default', 'low', 'medium', 'high'],
+  hermes: ['default', 'low', 'medium', 'high', 'xhigh', 'max'],
+  opencode: ['default', 'low', 'medium', 'high'],
+  pi: ['default', 'low', 'medium', 'high'],
 };
 
 export const GENERATION_KINDS = ['workflow', 'post_script'];

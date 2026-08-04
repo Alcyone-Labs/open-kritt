@@ -1,16 +1,22 @@
-# Pastel private open-kritt clone — bootstrap
+# Pastel private open-kritt fork — bootstrap
 
-**Location:** `pastel-org/open-kritt` (local clone of https://github.com/Kritt-ai/open-kritt)  
+**Location:** `pastel-org/open-kritt`  
+**Remotes:**
+- `origin` → `git@github.com:Alcyone-Labs/open-kritt.git` (Pastel private fork)
+- `upstream` → `https://github.com/Kritt-ai/open-kritt.git`
+
 **Program:** BLG-601 / `punkdb/docs/security-audits/kritt-harness-adapters.md`  
 **Policy:** No OpenAI/Anthropic providers for Punk security scans. Multi-harness: CyberStrike → Hermes → OpenCode → Pi.
 
 ## Status
 
 - [x] Shallow clone of upstream
-- [ ] Mark as Pastel private working tree (do not push to public upstream)
-- [ ] `./kritt setup` with Ollama-only credentials (when adapter lands)
-- [ ] Docker Compose bind 127.0.0.1 only
-- [ ] Register multi-harness adapters (Track B)
+- [x] `origin` = Alcyone-Labs private fork; `upstream` = Kritt-ai
+- [x] `PastelCliHarness` registered (`cyberstrike`, `hermes`, `opencode`, `pi`)
+- [x] Backend constants + generation allow `ollama` provider pairing
+- [ ] `./kritt setup` Ollama credentials path (engine provider_credentials)
+- [ ] Docker Compose bind 127.0.0.1 only + egress allowlist
+- [ ] Job images ship / mount CyberStrike + Hermes binaries
 - [ ] First local-path scan of `punkdb/packages/cojson`
 
 ## Safety (from upstream threat model)
@@ -20,30 +26,20 @@
 3. Job containers are root + outbound net by default — add egress allowlist at host firewall when possible.
 4. Prefer **local path** scans of punkdb (no `GITHUB_TOKEN` for private monorepo).
 5. Treat findings as sensitive until triaged into BLG `#security`.
+6. Do **not** `git push upstream`. Push Pastel changes only to `origin` after Nick review.
 
-## Commands (host)
+## Commands
 
 ```bash
 cd ~/projects/pastel-org/open-kritt
+git remote -v
+# origin    git@github.com:Alcyone-Labs/open-kritt.git
+# upstream  https://github.com/Kritt-ai/open-kritt.git
 
-# Inspect only until multi-harness fork work starts
-cat docker-compose.yml | head -80
-./kritt --help || node scripts/kritt.mjs --help
+# Engine unit smoke for Pastel harnesses
+cd engine && python -m pytest tests/test_pastel_harnesses.py -q
 
-# Do NOT run ./kritt setup with Codex/Claude credentials for Pastel security profile.
-```
-
-## Fork work plan (Track B)
-
-1. Rename remote: `origin` = private Pastel fork; `upstream` = Kritt-ai/open-kritt  
-2. Engine: add harness adapters for `cyberstrike`, `hermes`, `opencode`, `pi`  
-3. Providers: `ollama` (OpenAI-compatible base URL + key); optional `xai`  
-4. Seed workflows for L1 crypto boundary + L3 permissions  
-5. Export findings → `punkdb/docs/security-audits/findings/`
-
-Until Track B lands, use Track A:
-
-```bash
+# Until full compose is ready, use Track A runner:
 cd ~/projects/pastel-org/punkdb
 pnpm security:harness -- --harness cyberstrike --prompt-file docs/security-audits/prompts/l1-crypto-boundary.md
 pnpm security:harness -- --harness hermes --prompt-file docs/security-audits/prompts/2026-08-04-hermes-l1-wave.md

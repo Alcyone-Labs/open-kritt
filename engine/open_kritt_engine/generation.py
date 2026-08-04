@@ -62,10 +62,15 @@ MODEL_PROVIDER_HARNESSES = {
     "codex": frozenset({"codex"}),
     "claude": frozenset({"claude-code"}),
     "openrouter": frozenset({"codex", "claude-code"}),
+    "ollama": frozenset({"cyberstrike", "hermes", "opencode", "pi"}),
 }
 HARNESS_THINKING_EFFORTS = {
     "codex": frozenset({"default", "low", "medium", "high", "xhigh", "max", "ultra"}),
     "claude-code": frozenset({"default", "low", "medium", "high", "xhigh", "max"}),
+    "cyberstrike": frozenset({"default", "low", "medium", "high"}),
+    "hermes": frozenset({"default", "low", "medium", "high", "xhigh", "max"}),
+    "opencode": frozenset({"default", "low", "medium", "high"}),
+    "pi": frozenset({"default", "low", "medium", "high"}),
 }
 
 IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")

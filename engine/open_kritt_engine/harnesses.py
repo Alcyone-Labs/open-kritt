@@ -341,6 +341,14 @@ def _command_harness(cmd: list[str]) -> str:
         return "codex"
     if "claude" in executables:
         return "claude-code"
+    if "cyberstrike" in executables:
+        return "cyberstrike"
+    if "hermes" in executables:
+        return "hermes"
+    if "opencode" in executables:
+        return "opencode"
+    if "pi" in executables:
+        return "pi"
     return Path(str(cmd[0])).name if cmd else "model"
 
 
@@ -1847,6 +1855,129 @@ def normalize_harness_name(name: str) -> str:
     return name
 
 
+# Pastel multi-harness adapters (BLG-601). These call host-installed CLIs.
+# Prefer hermes/cyberstrike for Punk security waves; keep codex/claude disabled
+# in Pastel provider defaults (see PASTEL.md).
+PASTEL_CLI_HARNESSES = frozenset({"cyberstrike", "hermes", "opencode", "pi"})
+
+
+class PastelCliHarness:
+    """Run CyberStrike / Hermes / OpenCode / Pi against a workspace.
+
+    Expects the CLI to print structured JSON (or fenced JSON) matching the step
+    schema. Full Docker-job packaging is a follow-up; local path scans work when
+    the binary is on PATH inside the engine container or host job.
+    """
+
+    def __init__(self, name: str, timeout_seconds: int, model_provider: str | None = None):
+        if name not in PASTEL_CLI_HARNESSES:
+            raise HarnessError(f"unsupported pastel harness {name!r}", code="configuration_error", harness=name)
+        self.name = name
+        self.timeout_seconds = timeout_seconds
+        self.model_provider = model_provider
+
+    def run(
+        self,
+        *,
+        prompt: str,
+        schema: dict[str, Any],
+        repo_dir: str,
+        model: str,
+        thinking_effort: str | None = None,
+        env: dict[str, str] | None = None,
+        allow_tools: bool = True,
+        runner_image: str | None = None,
+    ) -> HarnessResult:
+        base_env = env if env is not None else _base_env()
+        schema_hint = json.dumps(schema, separators=(",", ":"))
+        full_prompt = (
+            f"{prompt}\n\n"
+            "Return ONLY a single JSON object matching this schema "
+            f"(no prose outside JSON):\n{schema_hint}\n"
+        )
+        cmd = self._build_cmd(
+            model=model,
+            repo_dir=repo_dir,
+            allow_tools=allow_tools,
+            full_prompt=full_prompt,
+        )
+        if not shutil.which(cmd[0]) and runner_image is None:
+            raise HarnessError(
+                f"{self.name} executable {cmd[0]!r} not found on PATH",
+                code="start_failed",
+                harness=self.name,
+            )
+        actual_env = dict(base_env)
+        actual_env["PASTEL_KRITT_PROMPT"] = full_prompt
+        if model:
+            actual_env.setdefault("PASTEL_KRITT_MODEL", model)
+        if thinking_effort:
+            actual_env.setdefault("PASTEL_KRITT_THINKING_EFFORT", thinking_effort)
+        if runner_image:
+            cmd = _scan_docker_command(cmd, repo_dir, actual_env, runner_image=runner_image)
+        # stdin unused for argv-based CLIs; pass None
+        proc = _run_process(cmd, None, repo_dir, self.timeout_seconds, env=actual_env)
+        process_output = _process_output(proc)
+        combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
+        try:
+            payload = _parse_json_text(combined)
+        except (HarnessError, json.JSONDecodeError) as exc:
+            raise _classified_harness_error(
+                combined,
+                harness=self.name,
+                default_code="invalid_output",
+                output_artifact=process_output,
+                provider=None,
+            ) from exc
+        usage: dict[str, Any] = {"harness": self.name, "model": model}
+        if thinking_effort:
+            usage["thinking_effort"] = thinking_effort
+        return HarnessResult(payload=payload, usage=usage, output=process_output)
+
+    def _build_cmd(
+        self,
+        *,
+        model: str,
+        repo_dir: str,
+        allow_tools: bool,
+        full_prompt: str,
+    ) -> list[str]:
+        if self.name == "cyberstrike":
+            cmd = ["cyberstrike", "run", "--dir", repo_dir, "--format", "json"]
+            if model:
+                cmd.extend(["-m", model])
+            cmd.append(full_prompt)
+            return cmd
+        if self.name == "hermes":
+            cmd = [
+                "hermes",
+                "chat",
+                "-q",
+                full_prompt,
+                "-Q",
+                "--yolo" if allow_tools else "--safe-mode",
+            ]
+            if model:
+                cmd.extend(["-m", model])
+            return cmd
+        if self.name == "opencode":
+            cmd = ["opencode", "run", full_prompt]
+            if model:
+                cmd.extend(["-m", model])
+            return cmd
+        if self.name == "pi":
+            cmd = ["pi", "-p", "--mode", "json", "--no-session"]
+            if model:
+                cmd.extend(["--model", model])
+            cmd.append(full_prompt)
+            return cmd
+        raise HarnessError(
+            f"unsupported pastel harness {self.name!r}",
+            code="configuration_error",
+            harness=self.name,
+        )
+
+
 def harness_for(
     name: str,
     *,
@@ -1870,4 +2001,6 @@ def harness_for(
         return ClaudeHarness(timeout_seconds, provider)
     if normalized == "cursor":
         return CursorHarness(timeout_seconds, provider)
+    if normalized in PASTEL_CLI_HARNESSES:
+        return PastelCliHarness(normalized, timeout_seconds, provider)
     raise HarnessError(f"unsupported harness {name!r}")
