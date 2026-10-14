@@ -62,6 +62,12 @@ python -m open_kritt_engine                # run the worker
 - **One version, one source of truth**: change [`VERSION`](VERSION), then run
   `node scripts/sync-version.mjs`. Never hand-edit a component's version.
 - **Pin Docker image tags** (never `:latest`).
+- **No GPL-family code in this repo** (GPL-2.0/GPL-3.0, LGPL, AGPL): never push,
+  vendor, copy, or inline it — including snippets, translated ports, or
+  AI-reproduced code. If a GPL-family library is genuinely required, reference it
+  externally (a package-manager dependency declaration, git submodule, or plain
+  link) so its copyleft terms never taint this repo's license. When in doubt, stop
+  and ask before committing.
 
 ## Gotchas (don't get bitten)
 
